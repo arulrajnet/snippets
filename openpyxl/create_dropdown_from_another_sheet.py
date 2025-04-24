@@ -16,4 +16,10 @@ next_sheet['A1'] = "Select IP Address"
 next_sheet.add_data_validation(data_val)
 data_val.add(next_sheet["B1"])
 
-wb.save('Test.xlsx')
+# Create xlsx file name from the python file name
+import os
+import sys
+import re
+filename = os.path.basename(sys.argv[0])
+filename = re.sub(r'\.py$', '', filename)
+wb.save(filename+'.xlsx')
