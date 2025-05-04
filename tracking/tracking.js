@@ -2,8 +2,9 @@ const channel = new BroadcastChannel('session-tracker');
 const tabId = crypto.randomUUID ? crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 const liveTabs = new Set([tabId]);
 
-const csrf_token_name = '_my_csrf_token';
-const tracking_id_name = '_my_tracking_id';
+// Constants
+const CSRF_COOKIE_NAME = "_my_csrf_token";
+const SESSION_COOKIE_NAME = "_my_session_id";
 
 // Helper function to get cookie value by name
 function getCookie(name) {
@@ -14,18 +15,19 @@ function getCookie(name) {
 }
 
 // Helper function for sending POST requests
-async function sendRequest(endpoint) {
+async function sendRequest(endpoint, httpMethod='POST', data = {}) {
   try {
     // Get CSRF token from cookie before each request
-    const csrfToken = getCookie(csrf_token_name);
+    const csrfToken = getCookie(CSRF_COOKIE_NAME);
 
     const response = await fetch(endpoint, {
-      method: 'POST',
+      method: httpMethod,
       credentials: 'same-origin', // Include cookies
       headers: {
         'Content-Type': 'application/json',
         ...(csrfToken && { 'X-CSRF-Token': csrfToken })
-      }
+      },
+      ...(Object.keys(data).length > 0 && { body: JSON.stringify(data) })
     });
 
     if (!response.ok) {
@@ -46,14 +48,8 @@ async function sendRequest(endpoint) {
 
 // Function to delete session cookies
 function deleteSessionCookies() {
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    const cookieName = cookie.split('=')[0].trim();
-    if (cookieName.includes(csrf_token_name) || cookieName.includes(tracking_id_name)) {
-      // Set the cookie's expiration date to a past date to delete it
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
-    }
-  }
+  document.cookie = `${SESSION_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=lax`;
+  document.cookie = `${CSRF_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=lax`;
 }
 
 channel.onmessage = ({data}) => {
@@ -79,7 +75,7 @@ channel.onmessage = ({data}) => {
 // Start a new session
 async function startSession() {
   try {
-    await sendRequest('/_session/start');
+    await sendRequest('/_session/start', 'GET');
     console.log('Session started successfully');
   } catch (error) {
     console.error('Failed to start session:', error);
