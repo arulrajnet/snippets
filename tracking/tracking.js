@@ -111,20 +111,28 @@ window.addEventListener('load', async () => {
 });
 
 // 2) when _you_ close, tell everyone
-window.addEventListener('beforeunload', (event) => {
-  event.preventDefault();
+window.addEventListener('beforeunload', async () => {
   channel.postMessage({type:'unregister', id:tabId});
   console.log('Tab is closing, unregistering:', tabId);
   if (liveTabs.size === 1 && liveTabs.has(tabId)) {
-    stopSession();
+    await stopSession();
   }
 });
 
+window.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "hidden") {
+    // Tab is hidden, so send last heartbeat
+    console.log('Tab is hidden, sending last heartbeat');
+    await sendHeartbeat();
+  }
+});
+
+
 // 3) send heartbeat every 1 minutes
-const HEARTBEAT_INTERVAL = 1 * 60 * 1000; // 5 minutes in milliseconds
-setInterval(() => {
+const HEARTBEAT_INTERVAL = 1 * 60 * 1000; // 1 minute in milliseconds
+setInterval(async () => {
   // Only send heartbeat if tab is visible
   if (document.visibilityState !== 'hidden') {
-    sendHeartbeat();
+    await sendHeartbeat();
   }
 }, HEARTBEAT_INTERVAL);
