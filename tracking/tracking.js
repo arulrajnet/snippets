@@ -20,7 +20,9 @@ async function sendRequest(endpoint, httpMethod='POST', data = {}) {
     // Get CSRF token from cookie before each request
     const csrfToken = getCookie(CSRF_COOKIE_NAME);
 
+    // use keepalive to allow the request to be sent even if the page is unloading
     const response = await fetch(endpoint, {
+      keepalive: true,
       method: httpMethod,
       credentials: 'same-origin', // Include cookies
       headers: {
@@ -116,16 +118,14 @@ async function handleTabClosing() {
 
 // Attach the combined handler to both events
 window.addEventListener('beforeunload', handleTabClosing);
-window.addEventListener('pagehide', handleTabClosing);
-window.addEventListener('unload', handleTabClosing);
 
-window.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "hidden") {
-    // Tab is hidden, so send last heartbeat
-    console.log('Tab is hidden, sending last heartbeat');
-    await sendHeartbeat();
-  }
-});
+// window.addEventListener("visibilitychange", async () => {
+//   if (document.visibilityState === "hidden") {
+//     // Tab is hidden, so send last heartbeat
+//     console.log('Tab is hidden, sending last heartbeat');
+//     await sendHeartbeat();
+//   }
+// });
 
 
 // 3) send heartbeat every 1 minutes
