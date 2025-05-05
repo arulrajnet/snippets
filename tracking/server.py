@@ -111,7 +111,7 @@ async def start_session(request: Request, response: Response):
         key=SESSION_COOKIE_NAME,
         value=session_id,
         httponly=True,
-        max_age=COOKIE_MAX_AGE,
+        expires=None,  # Session cookie that expires when browser closes
         samesite="lax",
         secure=True
     )
@@ -120,7 +120,7 @@ async def start_session(request: Request, response: Response):
         key=CSRF_COOKIE_NAME,
         value=csrf_token,
         httponly=False,  # Client JS needs to access this
-        max_age=COOKIE_MAX_AGE,
+        max_age=None,  # Session cookie that expires when browser closes
         samesite="lax",
         secure=True
     )

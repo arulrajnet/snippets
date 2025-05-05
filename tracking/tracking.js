@@ -46,18 +46,13 @@ async function sendRequest(endpoint, httpMethod='POST', data = {}) {
   }
 }
 
-// Function to delete session cookies
-function deleteSessionCookies() {
-  document.cookie = `${SESSION_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=lax`;
-  document.cookie = `${CSRF_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=lax`;
-}
-
 channel.onmessage = ({data}) => {
   console.log('Received message:', data);
   switch(data.type) {
     case 'who-is-there':
       // someone new wants the roster—tell them about _you_
       channel.postMessage({type:'iam-here', id:tabId});
+      liveTabs.add(data.id);
       break;
     case 'iam-here':
       // a live tab announces itself
@@ -96,7 +91,6 @@ async function sendHeartbeat() {
 async function stopSession() {
   try {
     await sendRequest('/_session/stop');
-    deleteSessionCookies();
     console.log('Session stopped successfully');
   } catch (error) {
     console.error('Failed to stop session:', error);
@@ -105,19 +99,25 @@ async function stopSession() {
 
 // 1) on load: ask who's already open and start session
 window.addEventListener('load', async () => {
-  channel.postMessage({type:'who-is-there'});
+  channel.postMessage({type:'who-is-there', id:tabId});
   console.log('Tab is open, registering:', tabId);
   await startSession();
 });
 
 // 2) when _you_ close, tell everyone
-window.addEventListener('beforeunload', async () => {
+// Handle tab/page closing with a single function
+async function handleTabClosing() {
   channel.postMessage({type:'unregister', id:tabId});
   console.log('Tab is closing, unregistering:', tabId);
   if (liveTabs.size === 1 && liveTabs.has(tabId)) {
     await stopSession();
   }
-});
+}
+
+// Attach the combined handler to both events
+window.addEventListener('beforeunload', handleTabClosing);
+window.addEventListener('pagehide', handleTabClosing);
+window.addEventListener('unload', handleTabClosing);
 
 window.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "hidden") {
