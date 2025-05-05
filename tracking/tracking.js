@@ -117,15 +117,16 @@ async function handleTabClosing() {
 }
 
 // Attach the combined handler to both events
-window.addEventListener('beforeunload', handleTabClosing);
+// TODO: Handle the close on the server side is the right thing. 
+// window.addEventListener('beforeunload', handleTabClosing);
 
-// window.addEventListener("visibilitychange", async () => {
-//   if (document.visibilityState === "hidden") {
-//     // Tab is hidden, so send last heartbeat
-//     console.log('Tab is hidden, sending last heartbeat');
-//     await sendHeartbeat();
-//   }
-// });
+window.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "hidden") {
+    // Tab is hidden, so send last heartbeat
+    console.log('Tab is hidden, sending last heartbeat');
+    await sendHeartbeat();
+  }
+});
 
 
 // 3) send heartbeat every 1 minutes
